@@ -12,6 +12,7 @@ import { clientsRouter } from './routes/clients.js'
 import { testimonialsRouter } from './routes/testimonials.js'
 import { settingsRouter } from './routes/settings.js'
 import { syncRouter } from './routes/sync.js'
+import { authRouter } from './routes/auth.js'
 
 const app = express()
 
@@ -78,6 +79,7 @@ app.use('/api/clients', clientsRouter)
 app.use('/api/testimonials', testimonialsRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/sync', syncRouter)
+app.use('/api/auth', authRouter)
 
 // Global Error Handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

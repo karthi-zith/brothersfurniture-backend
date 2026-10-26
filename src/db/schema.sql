@@ -4,7 +4,9 @@ CREATE TABLE IF NOT EXISTS products (
   id VARCHAR(100) PRIMARY KEY,
   sku VARCHAR(100) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
+  type VARCHAR(100),
   category VARCHAR(100) NOT NULL,
+  sub_category VARCHAR(100),
   price NUMERIC(12,2) NOT NULL,
   old_price NUMERIC(12,2),
   rating NUMERIC(3,2) DEFAULT 5.0,
@@ -21,7 +23,9 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_products_type ON products(type);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_products_sub_category ON products(sub_category);
 CREATE INDEX IF NOT EXISTS idx_products_featured ON products(featured);
 CREATE INDEX IF NOT EXISTS idx_products_in_stock ON products(in_stock);
 
@@ -114,4 +118,41 @@ CREATE TABLE IF NOT EXISTS company_settings (
   banner_announcement TEXT,
   is_banner_active BOOLEAN DEFAULT TRUE,
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS admin_users (
+  id VARCHAR(100) PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  role VARCHAR(50) NOT NULL DEFAULT 'viewer',
+  status VARCHAR(50) NOT NULL DEFAULT 'active',
+  phone VARCHAR(50),
+  avatar_url TEXT,
+  last_login_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
+CREATE INDEX IF NOT EXISTS idx_admin_users_status ON admin_users(status);
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+  id VARCHAR(100) PRIMARY KEY,
+  admin_email VARCHAR(255) NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  details TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON admin_audit_logs(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS admin_refresh_tokens (
+  id VARCHAR(100) PRIMARY KEY,
+  admin_id VARCHAR(100) NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+  token_hash VARCHAR(255) NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { mapChair } from '../utils/serializer.js'
+import { syncEvents } from '../utils/syncEvents.js'
 
 export const chairsRouter = Router()
 
@@ -36,7 +37,7 @@ chairsRouter.get('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Chair not found' })
     }
-    res.json(mapChair(result.rows[0]))
+    const updated = mapChair(result.rows[0]); syncEvents.notify('chairs', 'update', updated?.id); res.json(updated);
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }
@@ -64,7 +65,7 @@ chairsRouter.post('/', async (req, res) => {
     ]
 
     const result = await pool.query(queryStr, values)
-    res.status(201).json(mapChair(result.rows[0]))
+    const created = mapChair(result.rows[0]); syncEvents.notify('chairs', 'create', created?.id); res.status(201).json(created);
   } catch (err: any) {
     res.status(400).json({ error: err.message })
   }
@@ -101,7 +102,7 @@ chairsRouter.put('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Chair not found' })
     }
-    res.json(mapChair(result.rows[0]))
+    const updated = mapChair(result.rows[0]); syncEvents.notify('chairs', 'update', updated?.id); res.json(updated);
   } catch (err: any) {
     res.status(400).json({ error: err.message })
   }
@@ -128,7 +129,7 @@ chairsRouter.delete('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Chair not found' })
     }
-    res.json({ success: true, id: req.params.id })
+    syncEvents.notify('chairs', 'delete', req.params.id); res.json({ success: true, id: req.params.id });
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }

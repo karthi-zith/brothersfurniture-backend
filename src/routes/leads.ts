@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { mapLead } from '../utils/serializer.js'
+import { syncEvents } from '../utils/syncEvents.js'
 
 export const leadsRouter = Router()
 
@@ -79,7 +80,9 @@ leadsRouter.post('/', async (req, res) => {
     ]
 
     const result = await pool.query(queryStr, values)
-    res.status(201).json(mapLead(result.rows[0]))
+    const mapped = mapLead(result.rows[0])
+    if (mapped) syncEvents.notify('leads', 'create', mapped.id, mapped)
+    res.status(201).json(mapped)
   } catch (err: any) {
     res.status(400).json({ error: err.message })
   }

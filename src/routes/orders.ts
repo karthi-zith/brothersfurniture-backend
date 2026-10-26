@@ -1,8 +1,39 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { mapOrder } from '../utils/serializer.js'
+import { syncEvents } from '../utils/syncEvents.js'
 
 export const ordersRouter = Router()
+
+// Track endpoint for customer landing page order status check
+ordersRouter.get('/track/:query', async (req, res) => {
+  try {
+    const rawQuery = (req.params.query || '').trim()
+    if (!rawQuery) {
+      return res.status(400).json({ error: 'Please provide an order number or phone number.' })
+    }
+
+    const cleanPhone = rawQuery.replace(/[^0-9]/g, '')
+    const conditions: string[] = ['order_number ILIKE $1', 'email ILIKE $1']
+    const values: any[] = [`%${rawQuery}%`]
+
+    if (cleanPhone.length >= 7) {
+      values.push(`%${cleanPhone}%`)
+      conditions.push(`regexp_replace(phone, '[^0-9]', '', 'g') LIKE $${values.length}`)
+    }
+
+    const queryStr = `SELECT * FROM orders WHERE ${conditions.join(' OR ')} ORDER BY created_at DESC LIMIT 10`
+    const result = await pool.query(queryStr, values)
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No order found matching your inquiry. Please verify the order number or phone number.' })
+    }
+
+    res.json(result.rows.map(mapOrder))
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 ordersRouter.get('/', async (req, res) => {
   try {
@@ -80,7 +111,12 @@ ordersRouter.post('/', async (req, res) => {
     ]
 
     const result = await pool.query(queryStr, values)
-    res.status(201).json(mapOrder(result.rows[0]))
+    const mapped = mapOrder(result.rows[0])
+    
+    // Broadcast real-time event to Admin and connected clients
+    if (mapped) syncEvents.notify('orders', 'create', mapped.id, mapped)
+    
+    res.status(201).json(mapped)
   } catch (err: any) {
     res.status(400).json({ error: err.message })
   }
@@ -130,7 +166,9 @@ ordersRouter.put('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' })
     }
-    res.json(mapOrder(result.rows[0]))
+    const mapped = mapOrder(result.rows[0])
+    if (mapped) syncEvents.notify('orders', 'update', mapped.id, mapped)
+    res.json(mapped)
   } catch (err: any) {
     res.status(400).json({ error: err.message })
   }
@@ -143,7 +181,9 @@ ordersRouter.patch('/:id/status', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' })
     }
-    res.json(mapOrder(result.rows[0]))
+    const mapped = mapOrder(result.rows[0])
+    if (mapped) syncEvents.notify('orders', 'update', mapped.id, mapped)
+    res.json(mapped)
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }
@@ -156,7 +196,9 @@ ordersRouter.patch('/:id/payment', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' })
     }
-    res.json(mapOrder(result.rows[0]))
+    const mapped = mapOrder(result.rows[0])
+    if (mapped) syncEvents.notify('orders', 'update', mapped.id, mapped)
+    res.json(mapped)
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }
@@ -168,6 +210,7 @@ ordersRouter.delete('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' })
     }
+    syncEvents.notify('orders', 'delete', req.params.id)
     res.json({ success: true, id: req.params.id })
   } catch (err: any) {
     res.status(500).json({ error: err.message })

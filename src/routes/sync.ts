@@ -10,8 +10,51 @@ import {
   mapSettings,
   mapTestimonial,
 } from '../utils/serializer.js'
+import { syncEvents, type SyncEventPayload } from '../utils/syncEvents.js'
 
 export const syncRouter = Router()
+
+// SSE real-time sync stream for frontend landing page and admin clients
+syncRouter.get('/events', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  })
+
+  // Initial connection handshake
+  const welcomePayload = {
+    type: 'connected',
+    message: 'Brothers Furniture Real-Time Sync Stream Connected',
+    time: new Date().toISOString(),
+  }
+  res.write(`data: ${JSON.stringify(welcomePayload)}\n\n`)
+
+  const handleSync = (payload: SyncEventPayload) => {
+    try {
+      res.write(`data: ${JSON.stringify(payload)}\n\n`)
+    } catch {
+      // client connection closed
+    }
+  }
+
+  syncEvents.on('sync', handleSync)
+
+  // Keep-alive heartbeat every 20 seconds
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(': heartbeat\n\n')
+    } catch {
+      clearInterval(heartbeat)
+    }
+  }, 20000)
+
+  req.on('close', () => {
+    clearInterval(heartbeat)
+    syncEvents.off('sync', handleSync)
+  })
+})
 
 // Reset database to initial seed data
 syncRouter.post('/reset', async (_req, res) => {
@@ -20,6 +63,7 @@ syncRouter.post('/reset', async (_req, res) => {
       TRUNCATE products, ergonomic_chairs, leads, orders, clients, testimonials, company_settings CASCADE;
     `)
     await seedDatabase()
+    syncEvents.notify('all', 'reset')
     res.json({ success: true, message: 'Database reset to factory default seed data.' })
   } catch (err: any) {
     res.status(500).json({ error: err.message })

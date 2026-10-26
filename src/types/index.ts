@@ -4,13 +4,16 @@ export type Category =
   | 'Desks' 
   | 'Meeting Tables' 
   | 'Storage' 
-  | 'Lounge'
+  | 'Lounge' 
+  | (string & {})
 
 export interface Product {
   id: string
   sku: string
   name: string
+  type?: string
   category: Category
+  subCategory?: string
   price: number
   oldPrice?: number
   rating: number

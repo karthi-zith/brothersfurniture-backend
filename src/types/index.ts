@@ -7,6 +7,16 @@ export type Category =
   | 'Lounge' 
   | (string & {})
 
+export interface ProductImage {
+  id: string
+  productId?: string
+  url: string
+  r2Key?: string
+  sortOrder: number
+  isPrimary: boolean
+  createdAt?: string
+}
+
 export interface Product {
   id: string
   sku: string
@@ -18,6 +28,8 @@ export interface Product {
   oldPrice?: number
   rating: number
   image: string
+  r2Key?: string
+  images?: ProductImage[]
   cutout?: boolean
   description: string
   material: string

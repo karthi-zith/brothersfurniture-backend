@@ -1,5 +1,47 @@
-export function mapProduct(row: any) {
+export function mapProduct(row: any, imagesList?: any) {
   if (!row) return null
+
+  // Ensure imagesList is an array, not an index number from Array.prototype.map
+  const safeImagesList = Array.isArray(imagesList) ? imagesList : undefined
+
+  // Resolve images: if imagesList provided, use it; otherwise synthesize from primary image
+  let images: any[] = []
+  if (safeImagesList && safeImagesList.length > 0) {
+    images = safeImagesList.map((img: any) => ({
+      id: img.id,
+      productId: img.product_id || row.id,
+      url: img.url,
+      r2Key: img.r2_key || undefined,
+      sortOrder: img.sort_order ?? 0,
+      isPrimary: img.is_primary ?? false,
+      createdAt: img.created_at ? new Date(img.created_at).toISOString() : undefined,
+    }))
+  } else if (row.images) {
+    const rawImgs = Array.isArray(row.images) ? row.images : (typeof row.images === 'string' ? JSON.parse(row.images) : [])
+    images = rawImgs.map((img: any) => ({
+      id: img.id,
+      productId: img.product_id || row.id,
+      url: img.url,
+      r2Key: img.r2_key || undefined,
+      sortOrder: img.sort_order ?? 0,
+      isPrimary: img.is_primary ?? false,
+    }))
+  }
+
+  // Fallback to primary image if no secondary images
+  if (images.length === 0 && row.image) {
+    images = [
+      {
+        id: `${row.id}-primary`,
+        productId: row.id,
+        url: row.image,
+        r2Key: row.r2_key || undefined,
+        sortOrder: 0,
+        isPrimary: true,
+      },
+    ]
+  }
+
   return {
     id: row.id,
     sku: row.sku,
@@ -11,6 +53,8 @@ export function mapProduct(row: any) {
     oldPrice: row.old_price != null ? parseFloat(row.old_price) : undefined,
     rating: parseFloat(row.rating),
     image: row.image,
+    r2Key: row.r2_key || undefined,
+    images,
     cutout: row.cutout,
     description: row.description,
     material: row.material,

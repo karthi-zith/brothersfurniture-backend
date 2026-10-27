@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS products (
   old_price NUMERIC(12,2),
   rating NUMERIC(3,2) DEFAULT 5.0,
   image TEXT NOT NULL,
+  r2_key TEXT,
   cutout BOOLEAN DEFAULT FALSE,
   description TEXT,
   material TEXT,
@@ -23,11 +24,26 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE products ADD COLUMN IF NOT EXISTS r2_key TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_products_type ON products(type);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_sub_category ON products(sub_category);
 CREATE INDEX IF NOT EXISTS idx_products_featured ON products(featured);
 CREATE INDEX IF NOT EXISTS idx_products_in_stock ON products(in_stock);
+
+CREATE TABLE IF NOT EXISTS product_images (
+  id VARCHAR(100) PRIMARY KEY,
+  product_id VARCHAR(100) NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  r2_key TEXT,
+  sort_order INTEGER DEFAULT 0,
+  is_primary BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_images_sort_order ON product_images(product_id, sort_order ASC);
 
 CREATE TABLE IF NOT EXISTS ergonomic_chairs (
   id VARCHAR(100) PRIMARY KEY,

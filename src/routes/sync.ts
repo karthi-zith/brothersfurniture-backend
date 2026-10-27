@@ -83,7 +83,7 @@ syncRouter.get('/export', async (_req, res) => {
 
     res.json({
       exportedAt: new Date().toISOString(),
-      products: productsRes.rows.map(mapProduct),
+      products: productsRes.rows.map((r) => mapProduct(r)),
       chairs: chairsRes.rows.map(mapChair),
       leads: leadsRes.rows.map(mapLead),
       orders: ordersRes.rows.map(mapOrder),

@@ -20,4 +20,19 @@ export const config = {
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   adminUrl: process.env.ADMIN_URL || 'http://localhost:5174',
   nodeEnv: process.env.NODE_ENV || 'development',
+  r2: {
+    bucketName: process.env.CF_R2_BUCKET_NAME || 'zithspace',
+    accountId: process.env.CF_R2_ACCOUNT_ID || '',
+    accessKeyId: process.env.CF_R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.CF_R2_SECRET_ACCESS_KEY || '',
+    endpoint:
+      process.env.CF_R2_ENDPOINT ||
+      (process.env.CF_R2_ACCOUNT_ID
+        ? `https://${process.env.CF_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+        : ''),
+    publicUrl:
+      process.env.CF_R2_PUBLIC_URL && !process.env.CF_R2_PUBLIC_URL.includes('r2.cloudflarestorage.com')
+        ? process.env.CF_R2_PUBLIC_URL
+        : 'https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev',
+  },
 }
